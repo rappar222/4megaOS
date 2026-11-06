@@ -563,20 +563,42 @@ void shell_run(void) {
     while (1) {
         char c = keyboard_getchar();
 
-        if (c == '\n') {
+        // Handle Enter
+        if (c == '\n' || c == '\r') {
             vga_putchar('\n');
             line_buf[line_pos] = '\0';
             execute_command(line_buf);
             line_pos = 0;
             line_buf[0] = '\0';
             print_prompt();
-        } else if (c == '\b') {
+            continue;
+        }
+
+        // Handle Backspace (both ASCII \b and DEL 127)
+        if (c == '\b' || c == 127) {
             if (line_pos > 0) {
                 line_pos--;
                 line_buf[line_pos] = '\0';
                 vga_backspace();
             }
-        } else if (c >= 32 && c <= 126) {
+            continue;
+        }
+
+        // Handle ANSI escape sequences for serial arrow keys
+        if (c == 27) {
+            if (keyboard_has_char()) {
+                char c2 = keyboard_getchar();
+                if (c2 == '[') {
+                    if (keyboard_has_char()) {
+                        keyboard_getchar(); // Consume arrow direction
+                    }
+                }
+            }
+            continue;
+        }
+
+        // Printable ASCII
+        if (c >= 32 && c <= 126) {
             if (line_pos < MAX_CMD_LEN - 1) {
                 line_buf[line_pos++] = c;
                 line_buf[line_pos] = '\0';
