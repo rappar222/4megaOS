@@ -6,6 +6,7 @@
 #include "pmm.h"
 #include "kheap.h"
 #include "io.h"
+#include "net.h"
 
 #define MAX_CMD_LEN 128
 #define MAX_ARGS 8
@@ -37,6 +38,9 @@ static void cmd_help(int argc, char* argv[]) {
     kprintf("  calc <a> <op> <b>- Basic integer math (+, -, *, /)\n");
     kprintf("  color <0-15>    - Change VGA console text color\n");
     kprintf("  clear           - Clear the VGA display\n");
+    kprintf("  ifconfig        - Display network adapter and IP configuration\n");
+    kprintf("  ping <host>     - Send ICMP echo requests to host/IP\n");
+    kprintf("  curl <url>      - Fetch HTTP web resource (e.g. curl http://example.com/)\n");
     kprintf("  snake           - Play classic Snake game in 80x25 text mode\n");
     kprintf("  matrix          - Retro Matrix digital rain animation\n");
     kprintf("  reboot          - Reboot the system\n");
@@ -482,6 +486,86 @@ static void cmd_snake(int argc, char* argv[]) {
     vga_clear();
 }
 
+static void cmd_ifconfig(int argc, char* argv[]) {
+    (void)argc; (void)argv;
+    net_print_config();
+}
+
+static void cmd_ping(int argc, char* argv[]) {
+    if (argc < 2) {
+        kprintf("Usage: ping <host or ip>\n");
+        return;
+    }
+
+    if (!net_is_available()) {
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        kprintf("ping: no network interface available\n");
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+        return;
+    }
+
+    uint32_t target_ip = 0;
+    if (!dns_resolve(argv[1], &target_ip, 3000)) {
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        kprintf("ping: cannot resolve host %s\n", argv[1]);
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+        return;
+    }
+
+    char ip_str[20];
+    net_ip_to_str(target_ip, ip_str);
+    kprintf("PING %s (%s): 32 data bytes\n", argv[1], ip_str);
+
+    for (int i = 1; i <= 4; i++) {
+        uint32_t rtt = 0;
+        if (ping_send(target_ip, &rtt)) {
+            kprintf("32 bytes from %s: icmp_seq=%d time=%u ms\n", ip_str, i, rtt);
+        } else {
+            kprintf("Request timeout for icmp_seq %d\n", i);
+        }
+        timer_sleep(50);
+    }
+}
+
+static void cmd_curl(int argc, char* argv[]) {
+    if (argc < 2) {
+        vga_set_color(vga_entry_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK));
+        kprintf("Usage: curl [-v] [-i] <url>\n");
+        kprintf("Example: curl http://10.0.2.2:8000/\n");
+        kprintf("Example: curl http://example.com/\n");
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+        return;
+    }
+
+    if (!net_is_available()) {
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        kprintf("curl: (6) Could not resolve host: no network interface found\n");
+        vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+        return;
+    }
+
+    bool verbose = false;
+    bool show_headers = false;
+    const char* url = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
+            verbose = true;
+        } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--include") == 0) {
+            show_headers = true;
+        } else if (argv[i][0] != '-') {
+            url = argv[i];
+        }
+    }
+
+    if (!url) {
+        kprintf("curl: no URL specified\n");
+        return;
+    }
+
+    curl_fetch(url, show_headers, verbose);
+}
+
 static struct {
     const char* name;
     void (*func)(int argc, char* argv[]);
@@ -499,6 +583,9 @@ static struct {
     {"calc",    cmd_calc},
     {"color",   cmd_color},
     {"clear",   cmd_clear},
+    {"ifconfig",cmd_ifconfig},
+    {"ping",    cmd_ping},
+    {"curl",    cmd_curl},
     {"snake",   cmd_snake},
     {"matrix",  cmd_matrix},
     {"reboot",  cmd_reboot},

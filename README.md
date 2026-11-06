@@ -15,9 +15,12 @@
 - **Dynamic Kernel Heap:** Dynamic block allocator (`kmalloc`, `kfree`) with coalescing and corruption detection.
 - **Multiboot Compliant:** Boots natively via GRUB or QEMU direct kernel boot.
 - **Hardware Drivers:**
+  - **Network (Intel E1000 Gigabit):** PCI bus-mastering driver for Intel 82540EM Gigabit Ethernet.
+  - **TCP/IP Protocol Stack:** Bare-metal ARP, IPv4, ICMP (ping), UDP (DNS client), and TCP with 3-way handshake and stream reassembly.
+  - **curl Web Client:** Built-in HTTP/1.0 client supporting DNS resolution, HTTP headers, and body streaming in 4MB RAM!
   - **VGA Text Mode Console:** 80x25 character mode with 16 colors, hardware cursor manipulation, and scrolling.
-  - **Serial COM1 Driver:** Mirrored console output for headless operation, automated testing, and host terminal logging.
-  - **PS/2 Keyboard Driver:** Interrupt-driven keyboard controller with scancode translation and key buffer.
+  - **Serial COM1 Driver:** Mirrored console output for headless operation, automated testing, and host terminal logging (with hardware loopback presence detection).
+  - **PS/2 Keyboard Driver:** Interrupt-driven keyboard controller with scancode translation, buffer polling, and DEL/Backspace support.
   - **8254 PIT (Programmable Interval Timer):** 100 Hz system tick for timing, delays, and uptime.
   - **8259 PIC (Programmable Interrupt Controller):** Cleanly remapped IRQs 0-15 to IDT gates 32-47.
   - **GDT & IDT:** 32-bit protected mode descriptor tables and exception handlers.
@@ -119,6 +122,9 @@ make run-serial
 | `cpu` | Inspect CPU vendor string (CPUID), family, model, and instruction set flags |
 | `uptime` | Display system uptime (`hh:mm:ss`) and PIT clock ticks |
 | `calc <a> <op> <b>` | Built-in integer arithmetic calculator (`+`, `-`, `*`, `/`) |
+| `ifconfig` | Display network adapter details (MAC, IP, Subnet, Gateway, DNS, packet counters) |
+| `ping <host/ip>` | Send ICMP echo requests and measure round-trip time (RTT) |
+| `curl [-v] [-i] <url>` | Fetch web resources over HTTP (e.g. `curl http://example.com/` or `curl http://10.0.2.2:8000/`) |
 | `color <0-15>` | Change VGA text foreground color |
 | `clear` | Clear the VGA console screen |
 | `snake` | Play classic Snake game in 80x25 text mode (W/A/S/D keys) |

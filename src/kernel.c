@@ -11,6 +11,7 @@
 #include "kheap.h"
 #include "shell.h"
 #include "io.h"
+#include "net.h"
 
 extern uint32_t _kernel_start;
 extern uint32_t _kernel_end;
@@ -84,6 +85,14 @@ void kernel_main(uint32_t magic, struct multiboot_info* mbi) {
     // 11. Enable Interrupts
     sti();
     kprintf("[OK] CPU Interrupts enabled (STI)\n");
+
+    // 12. Initialize Network (PCI E1000)
+    net_init();
+    if (net_is_available()) {
+        kprintf("[OK] Intel E1000 Gigabit Ethernet initialized\n");
+    } else {
+        kprintf("[INFO] No network interface found on PCI bus\n");
+    }
 
     vga_set_color(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     kprintf("\nBoot complete! System running cleanly within 4MB physical RAM.\n");

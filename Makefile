@@ -32,10 +32,10 @@ $(ISO): $(KERNEL) isodir/boot/grub/grub.cfg
 	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(ISO) isodir
 
 run: $(ISO)
-	qemu-system-x86_64 -m 4M -cdrom $(ISO) -serial stdio
+	qemu-system-x86_64 -m 4M -cdrom $(ISO) -net nic,model=e1000 -net user -serial stdio
 
 run-serial: $(ISO)
-	qemu-system-x86_64 -m 4M -cdrom $(ISO) -serial stdio
+	qemu-system-x86_64 -m 4M -cdrom $(ISO) -net nic,model=e1000 -net user -serial stdio -display none
 
 run-curses: $(ISO)
 	qemu-system-x86_64 -m 4M -cdrom $(ISO) -curses

@@ -154,10 +154,11 @@ void kprintf(const char* fmt, ...) {
         }
 
         i++;
-        if (fmt[i] == '0' && fmt[i+1] == '2' && (fmt[i+2] == 'u' || fmt[i+2] == 'd')) {
+        if (fmt[i] == '0' && fmt[i+1] == '2' && (fmt[i+2] == 'u' || fmt[i+2] == 'd' || fmt[i+2] == 'x')) {
             uint32_t val = va_arg(args, uint32_t);
-            if (val < 10) vga_putchar('0');
-            utoa(val, buf, 10);
+            int base = (fmt[i+2] == 'x') ? 16 : 10;
+            utoa(val, buf, base);
+            if (val < (uint32_t)base) vga_putchar('0');
             vga_puts(buf);
             i += 2;
             continue;
