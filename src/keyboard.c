@@ -122,43 +122,24 @@ static void keyboard_callback(struct registers* regs) {
 void keyboard_init(void) {
     register_interrupt_handler(33, keyboard_callback);
 
-    // 1. Drain any pending data in 8042 buffer
-    while (inb(0x64) & 1) {
-        inb(0x60);
-    }
-
-    // 2. Enable keyboard interface
-    outb(0x64, 0xAE);
-
-    // 3. Read configuration byte
-    outb(0x64, 0x20);
-    for (volatile int i = 0; i < 2000; i++);
-    if (inb(0x64) & 1) {
-        uint8_t cfg = inb(0x60);
-        cfg |= 0x01;  // Enable IRQ1 interrupt
-        cfg &= ~0x10; // Enable keyboard clock line
-        outb(0x64, 0x60);
-        for (volatile int i = 0; i < 2000; i++);
-        outb(0x60, cfg);
-    }
-
-    // 4. Enable scanning on keyboard device
-    outb(0x60, 0xF4);
-    for (volatile int i = 0; i < 2000; i++);
-    while (inb(0x64) & 1) {
+    // Drain pending data from 8042 buffer (max 16 bytes)
+    for (int i = 0; i < 16 && (inb(0x64) & 1); i++) {
         inb(0x60);
     }
 }
 
 bool keyboard_has_char(void) {
-    // Check if hardware 8042 buffer has unread scancodes (polling fallback)
+    if (buf_read_idx != buf_write_idx) {
+        return true;
+    }
+
+    // Check if hardware 8042 buffer has unread scancodes
     if (inb(0x64) & 1) {
         uint8_t scancode = inb(0x60);
         process_scancode(scancode);
-    }
-
-    if (buf_read_idx != buf_write_idx) {
-        return true;
+        if (buf_read_idx != buf_write_idx) {
+            return true;
+        }
     }
 
     if (serial_received()) {

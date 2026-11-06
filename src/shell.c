@@ -544,10 +544,6 @@ static void execute_command(char* cmd) {
 void shell_init(void) {
     line_pos = 0;
     line_buf[0] = '\0';
-    // Flush any pending characters from keyboard or serial
-    while (keyboard_has_char()) {
-        keyboard_getchar();
-    }
 }
 
 static void print_prompt(void) {
